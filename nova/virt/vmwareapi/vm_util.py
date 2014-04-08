@@ -90,7 +90,7 @@ def vm_ref_cache_from_name(func):
 VNC_CONFIG_KEY = 'config.extraConfig["RemoteDisplay.vnc.port"]'
 
 
-def get_vm_create_spec(client_factory, instance, name, data_store_name,
+def get_vm_create_spec(client_factory, instance, name, ds_name, ds_ref,
                        vif_infos, os_type="otherGuest"):
     """Builds the VM Create spec."""
     config_spec = client_factory.create('ns0:VirtualMachineConfigSpec')
@@ -106,7 +106,7 @@ def get_vm_create_spec(client_factory, instance, name, data_store_name,
         config_spec.nestedHVEnabled = "True"
 
     vm_file_info = client_factory.create('ns0:VirtualMachineFileInfo')
-    vm_file_info.vmPathName = "[" + data_store_name + "]"
+    vm_file_info.vmPathName = "[" + ds_name + "]"
     config_spec.files = vm_file_info
 
     tools_info = client_factory.create('ns0:ToolsConfigInfo')
@@ -120,20 +120,29 @@ def get_vm_create_spec(client_factory, instance, name, data_store_name,
     config_spec.numCPUs = int(instance['vcpus'])
     config_spec.memoryMB = int(instance['memory_mb'])
 
-    vif_spec_list = []
+    devices = []
     for vif_info in vif_infos:
         vif_spec = create_network_spec(client_factory, vif_info)
-        vif_spec_list.append(vif_spec)
+        devices.append(vif_spec)
 
-    device_config_spec = vif_spec_list
+    serial_port_spec = create_serial_port_spec(client_factory,
+                                               instance['uuid'],
+                                               ds_name, ds_ref)
+    devices.append(serial_port_spec)
 
-    config_spec.deviceChange = device_config_spec
+    config_spec.deviceChange = devices
 
     # add vm-uuid and iface-id.x values for Neutron
     extra_config = []
     opt = client_factory.create('ns0:OptionValue')
     opt.key = "nvp.vm-uuid"
     opt.value = instance['uuid']
+    extra_config.append(opt)
+
+    # replace the serial log file when the instance is restarted
+    opt = client_factory.create('ns0:OptionValue')
+    opt.key = "answer.msg.serial.file.open"
+    opt.value = "Replace"
     extra_config.append(opt)
 
     i = 0
@@ -148,6 +157,31 @@ def get_vm_create_spec(client_factory, instance, name, data_store_name,
     config_spec.extraConfig = extra_config
 
     return config_spec
+
+
+def create_serial_port_spec(client_factory, instance_uuid, ds_name, ds_ref):
+    """Creates config spec for serial port."""
+    backing = client_factory.create('ns0:VirtualSerialPortFileBackingInfo')
+    backing.datastore = ds_ref
+    console_filename = "[%s] %s/%s" % (ds_name, instance_uuid, "console.log")
+    backing.fileName = console_filename
+
+    connectable_spec = client_factory.create('ns0:VirtualDeviceConnectInfo')
+    connectable_spec.startConnected = True
+    connectable_spec.allowGuestControl = True
+    connectable_spec.connected = True
+
+    serial_port = client_factory.create('ns0:VirtualSerialPort')
+    serial_port.connectable = connectable_spec
+    serial_port.backing = backing
+    # we are using unique negative integers as temporary keys
+    serial_port.key = -2
+    serial_port.yieldOnPoll = True
+
+    dev_spec = client_factory.create('ns0:VirtualDeviceConfigSpec')
+    dev_spec.operation = "add"
+    dev_spec.device = serial_port
+    return dev_spec
 
 
 def get_vm_resize_spec(client_factory, instance):

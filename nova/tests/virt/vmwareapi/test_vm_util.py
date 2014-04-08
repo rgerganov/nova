@@ -606,16 +606,37 @@ class VMwareVMUtilTestCase(test.NoDBTestCase):
         fake_instance = {'id': 7, 'name': 'fake!',
                          'uuid': instance_uuid,
                          'vcpus': 2, 'memory_mb': 2048}
+        ds_name = 'fake-ds-name'
+        ds_ref = 'fake-ds-ref'
         result = vm_util.get_vm_create_spec(fake.FakeFactory(),
                                             fake_instance, instance_uuid,
-                                            'fake-datastore', [])
+                                            ds_name, ds_ref, [])
         expected = """{
-            'files': {'vmPathName': '[fake-datastore]',
+            'files': {'vmPathName': '[fake-ds-name]',
             'obj_name': 'ns0:VirtualMachineFileInfo'},
             'instanceUuid': '%(instance_uuid)s',
-            'name': '%(instance_uuid)s', 'deviceChange': [],
+            'name': '%(instance_uuid)s',
+            'deviceChange': [{
+              'device': {
+                'backing': {
+                  'datastore': 'fake-ds-ref',
+                  'fileName': '[fake-ds-name]%(instance_uuid)s/console.log',
+                  'obj_name': 'ns0:VirtualSerialPortFileBackingInfo'},
+                'yieldOnPoll': True,
+                'connectable': {
+                  'allowGuestControl': True,
+                  'startConnected': True,
+                  'connected': True,
+                  'obj_name': 'ns0:VirtualDeviceConnectInfo'},
+                'key':-2,
+                'obj_name':'ns0:VirtualSerialPort'},
+              'operation':'add',
+              'obj_name':'ns0:VirtualDeviceConfigSpec'}],
             'extraConfig': [{'value': '%(instance_uuid)s',
                              'key': 'nvp.vm-uuid',
+                             'obj_name': 'ns0:OptionValue'},
+                            {'value': 'Replace',
+                             'key': 'answer.msg.serial.file.open',
                              'obj_name': 'ns0:OptionValue'}],
             'memoryMB': 2048,
             'obj_name': 'ns0:VirtualMachineConfigSpec',

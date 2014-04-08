@@ -290,7 +290,8 @@ class VMwareVMOps(object):
         # Get the create vm config spec
         config_spec = vm_util.get_vm_create_spec(
                             client_factory, instance, instance_name,
-                            data_store_name, vif_infos, os_type)
+                            data_store_name, data_store_ref, vif_infos,
+                            os_type)
 
         def _execute_create_vm():
             """Create VM on ESX host."""
