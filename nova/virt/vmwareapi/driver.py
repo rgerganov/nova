@@ -527,38 +527,6 @@ class VMwareVCDriver(VMwareESXDriver):
         """
         return mo_id + '(' + display_name + ')'
 
-    def _get_resource_for_node(self, nodename):
-        """Gets the resource information for the specific node."""
-        resource = self._resources.get(nodename)
-        if not resource:
-            msg = _("The resource %s does not exist") % nodename
-            raise exception.NotFound(msg)
-        return resource
-
-    def _get_vmops_for_compute_node(self, nodename):
-        """Retrieve vmops object from mo_id stored in the node name.
-
-        Node name is of the form domain-1000(MyCluster)
-        """
-        resource = self._get_resource_for_node(nodename)
-        return resource['vmops']
-
-    def _get_volumeops_for_compute_node(self, nodename):
-        """Retrieve vmops object from mo_id stored in the node name.
-
-        Node name is of the form domain-1000(MyCluster)
-        """
-        resource = self._get_resource_for_node(nodename)
-        return resource['volumeops']
-
-    def _get_vc_state_for_compute_node(self, nodename):
-        """Retrieve VCState object from mo_id stored in the node name.
-
-        Node name is of the form domain-1000(MyCluster)
-        """
-        resource = self._get_resource_for_node(nodename)
-        return resource['vcstate']
-
     def get_available_resource(self, nodename):
         """Retrieve resource info.
 
@@ -568,19 +536,8 @@ class VMwareVCDriver(VMwareESXDriver):
         :returns: dictionary describing resources
 
         """
-        stats_dict = {}
-        vc_state = self._get_vc_state_for_compute_node(nodename)
-        if vc_state:
-            host_stats = vc_state.get_host_stats(refresh=True)
-
-            # Updating host information
-            stats_dict = self._get_available_resources(host_stats)
-
-        else:
-            LOG.info(_("Invalid cluster or resource pool"
-                       " name : %s") % nodename)
-
-        return stats_dict
+        host_stats = self._vc_state.get_host_stats(refresh=True)
+        return self._get_available_resources(host_stats)
 
     def get_available_nodes(self, refresh=False):
         """Returns nodenames of all nodes managed by the compute service.

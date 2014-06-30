@@ -1996,18 +1996,6 @@ class VMwareAPIVCDriverTestCase(VMwareAPIVMTestCase):
         instances = self.conn.list_instances()
         self.assertEqual(0, len(instances))
 
-    def test_list_instances_from_nodes(self):
-        # Create instance on node1
-        self._create_vm(self.node_name)
-        # Create instances on the other node
-        self._create_vm(self.node_name2, num_instances=2)
-        self._create_vm(self.node_name2, num_instances=3)
-        node1_vmops = self.conn._get_vmops_for_compute_node(self.node_name)
-        node2_vmops = self.conn._get_vmops_for_compute_node(self.node_name2)
-        self.assertEqual(1, len(node1_vmops.list_instances()))
-        self.assertEqual(2, len(node2_vmops.list_instances()))
-        self.assertEqual(3, len(self.conn.list_instances()))
-
     def _setup_mocks_for_session(self, mock_init):
         mock_init.return_value = None
 
@@ -2099,26 +2087,6 @@ class VMwareAPIVCDriverTestCase(VMwareAPIVMTestCase):
         self.assertIn(self.node_name, nodelist)
         self.assertIn(self.node_name2, nodelist)
 
-    def test_spawn_multiple_node(self):
-
-        def fake_is_neutron():
-            return False
-
-        self.stubs.Set(nova_utils, 'is_neutron', fake_is_neutron)
-        uuid1 = uuidutils.generate_uuid()
-        uuid2 = uuidutils.generate_uuid()
-        self._create_vm(node=self.node_name, num_instances=1,
-                        uuid=uuid1)
-        info = self.conn.get_info({'uuid': uuid1,
-                                   'node': self.instance_node})
-        self._check_vm_info(info, power_state.RUNNING)
-        self.conn.destroy(self.context, self.instance, self.network_info)
-        self._create_vm(node=self.node_name2, num_instances=1,
-                        uuid=uuid2)
-        info = self.conn.get_info({'uuid': uuid2,
-                                   'node': self.instance_node})
-        self._check_vm_info(info, power_state.RUNNING)
-
     def test_snapshot(self):
         # Ensure VMwareVCVMOps's get_copy_virtual_disk_spec is getting called
         # two times
@@ -2154,14 +2122,6 @@ class VMwareAPIVCDriverTestCase(VMwareAPIVMTestCase):
 
         self.mox.ReplayAll()
         self._test_snapshot()
-
-    def test_spawn_invalid_node(self):
-        self._create_instance(node='InvalidNodeName')
-        self.assertRaises(exception.NotFound, self.conn.spawn,
-                          self.context, self.instance, self.image,
-                          injected_files=[], admin_password=None,
-                          network_info=self.network_info,
-                          block_device_info=None)
 
     def test_spawn_with_sparse_image(self):
         # Only a sparse disk image triggers the copy
