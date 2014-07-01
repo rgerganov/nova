@@ -1979,12 +1979,7 @@ class VMwareAPIVCDriverTestCase(VMwareAPIVMTestCase):
         vmwareapi_fake.reset(vc=True)
         self.conn = driver.VMwareVCDriver(None, False)
         self.ds = 'ds1'
-        # self.node_name = self.conn._resources.keys()[0]
-        # self.node_name2 = self.conn._resources.keys()[1]
-        # if cluster_name2 in self.node_name2:
-        #     self.ds = 'ds1'
-        # else:
-        #     self.ds = 'ds2'
+        self.node_name = self.conn._nodename
         self.vnc_host = 'ha-host'
 
     def tearDown(self):
@@ -2049,11 +2044,6 @@ class VMwareAPIVCDriverTestCase(VMwareAPIVMTestCase):
         self.assertRaises(NotImplementedError,
                           self.conn.set_host_enabled, 'host', 'state')
 
-    def test_datastore_regex_configured(self):
-        for node in self.conn._resources.keys():
-            self.assertEqual(self.conn._datastore_regex,
-                    self.conn._resources[node]['vmops']._datastore_regex)
-
     def test_get_available_resource(self):
         stats = self.conn.get_available_resource(self.node_name)
         cpu_info = {"model": ["Intel(R) Xeon(R)", "Intel(R) Xeon(R)"],
@@ -2082,9 +2072,8 @@ class VMwareAPIVCDriverTestCase(VMwareAPIVMTestCase):
 
     def test_get_available_nodes(self):
         nodelist = self.conn.get_available_nodes()
-        self.assertEqual(len(nodelist), 2)
+        self.assertEqual(len(nodelist), 1)
         self.assertIn(self.node_name, nodelist)
-        self.assertIn(self.node_name2, nodelist)
 
     def test_snapshot(self):
         # Ensure VMwareVCVMOps's get_copy_virtual_disk_spec is getting called
@@ -2262,7 +2251,7 @@ class VMwareAPIVCDriverTestCase(VMwareAPIVMTestCase):
                           self.instance)
 
     def test_datastore_dc_map(self):
-        vmops = self.conn._resources[self.node_name]['vmops']
+        vmops = self.conn._vmops
         self.assertEqual({}, vmops._datastore_dc_mapping)
         self._create_vm()
         # currently there are 2 data stores

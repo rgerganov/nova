@@ -41,7 +41,7 @@ class ConfigDriveTestCase(test.NoDBTestCase):
         vm_util.vm_refs_cache_reset()
         self.context = context.RequestContext('fake', 'fake', is_admin=False)
         cluster_name = 'test_cluster'
-        self.flags(cluster_name=[cluster_name],
+        self.flags(cluster_name=cluster_name,
                    host_ip='test_url',
                    host_username='test_username',
                    host_password='test_pass',
@@ -53,8 +53,7 @@ class ConfigDriveTestCase(test.NoDBTestCase):
         self.conn = driver.VMwareVCDriver(fake.FakeVirtAPI)
         self.network_info = utils.get_test_network_info()
         self.vim = vmwareapi_fake.FakeVim()
-        self.node_name = '%s(%s)' % (self.conn.dict_mors.keys()[0],
-                                     cluster_name)
+        self.node_name = self.conn._nodename
         image_ref = nova.tests.image.fake.get_valid_image_id()
         self.test_instance = {'node': 'test_url',
                               'vm_state': 'building',
