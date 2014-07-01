@@ -394,6 +394,20 @@ class VMwareVCDriver(VMwareESXDriver):
         self._cluster_name = CONF.vmware.cluster_name
         self._cluster_ref = vm_util.get_cluster_ref_by_name(self._session,
                                                             self._cluster_name)
+        self._volumeops = volumeops.VMwareVolumeOps(self._session,
+                                                    self._cluster_ref,
+                                                    vc_support=True)
+        self._vmops = vmops.VMwareVCVMOps(self._session,
+                                          virtapi,
+                                          self._volumeops,
+                                          self._cluster_ref,
+                                          self._datastore_regex)
+        self._nodename = self._create_nodename(self._cluster_ref.value,
+                                               self._cluster_name)
+        self._vc_state = host.VCState(self._session,
+                                      self._nodename,
+                                      self._cluster_ref)
+
         # self.dict_mors = vm_util.get_all_cluster_refs_by_name(self._session,
         #                                   self._cluster_names)
         # if not self.dict_mors:
@@ -476,49 +490,49 @@ class VMwareVCDriver(VMwareESXDriver):
         # itself. You must talk to the VNC host underneath vCenter.
         return self._vmops.get_vnc_console(instance)
 
-    def _update_resources(self):
-        """This method creates a dictionary of VMOps, VolumeOps and VCState.
-
-        The VMwareVMOps, VMwareVolumeOps and VCState object is for each
-        cluster/rp. The dictionary is of the form
-        {
-            domain-1000 : {'vmops': vmops_obj,
-                          'volumeops': volumeops_obj,
-                          'vcstate': vcstate_obj,
-                          'name': MyCluster},
-            resgroup-1000 : {'vmops': vmops_obj,
-                              'volumeops': volumeops_obj,
-                              'vcstate': vcstate_obj,
-                              'name': MyRP},
-        }
-        """
-        added_nodes = set(self.dict_mors.keys()) - set(self._resource_keys)
-        for node in added_nodes:
-            _volumeops = volumeops.VMwareVolumeOps(self._session,
-                                        self.dict_mors[node]['cluster_mor'],
-                                        vc_support=True)
-            _vmops = vmops.VMwareVCVMOps(self._session, self._virtapi,
-                                       _volumeops,
-                                       self.dict_mors[node]['cluster_mor'],
-                                       datastore_regex=self._datastore_regex)
-            name = self.dict_mors.get(node)['name']
-            nodename = self._create_nodename(node, name)
-            _vc_state = host.VCState(self._session, nodename,
-                                     self.dict_mors.get(node)['cluster_mor'])
-            self._resources[nodename] = {'vmops': _vmops,
-                                         'volumeops': _volumeops,
-                                         'vcstate': _vc_state,
-                                         'name': name,
-                                     }
-            self._resource_keys.add(node)
-
-        deleted_nodes = (set(self._resource_keys) -
-                            set(self.dict_mors.keys()))
-        for node in deleted_nodes:
-            name = self.dict_mors.get(node)['name']
-            nodename = self._create_nodename(node, name)
-            del self._resources[nodename]
-            self._resource_keys.discard(node)
+    # def _update_resources(self):
+    #     """This method creates a dictionary of VMOps, VolumeOps and VCState.
+    #
+    #     The VMwareVMOps, VMwareVolumeOps and VCState object is for each
+    #     cluster/rp. The dictionary is of the form
+    #     {
+    #         domain-1000 : {'vmops': vmops_obj,
+    #                       'volumeops': volumeops_obj,
+    #                       'vcstate': vcstate_obj,
+    #                       'name': MyCluster},
+    #         resgroup-1000 : {'vmops': vmops_obj,
+    #                           'volumeops': volumeops_obj,
+    #                           'vcstate': vcstate_obj,
+    #                           'name': MyRP},
+    #     }
+    #     """
+    #     added_nodes = set(self.dict_mors.keys()) - set(self._resource_keys)
+    #     for node in added_nodes:
+    #         _volumeops = volumeops.VMwareVolumeOps(self._session,
+    #                                     self.dict_mors[node]['cluster_mor'],
+    #                                     vc_support=True)
+    #         _vmops = vmops.VMwareVCVMOps(self._session, self._virtapi,
+    #                                    _volumeops,
+    #                                    self.dict_mors[node]['cluster_mor'],
+    #                                    datastore_regex=self._datastore_regex)
+    #         name = self.dict_mors.get(node)['name']
+    #         nodename = self._create_nodename(node, name)
+    #         _vc_state = host.VCState(self._session, nodename,
+    #                                  self.dict_mors.get(node)['cluster_mor'])
+    #         self._resources[nodename] = {'vmops': _vmops,
+    #                                      'volumeops': _volumeops,
+    #                                      'vcstate': _vc_state,
+    #                                      'name': name,
+    #                                  }
+    #         self._resource_keys.add(node)
+    #
+    #     deleted_nodes = (set(self._resource_keys) -
+    #                         set(self.dict_mors.keys()))
+    #     for node in deleted_nodes:
+    #         name = self.dict_mors.get(node)['name']
+    #         nodename = self._create_nodename(node, name)
+    #         del self._resources[nodename]
+    #         self._resource_keys.discard(node)
 
     def _create_nodename(self, mo_id, display_name):
         """Creates the name that is stored in hypervisor_hostname column.
@@ -549,17 +563,19 @@ class VMwareVCDriver(VMwareESXDriver):
         by the service. Otherwise, this method should return
         [hypervisor_hostname].
         """
-        self.dict_mors = vm_util.get_all_cluster_refs_by_name(
-                                self._session,
-                                CONF.vmware.cluster_name)
-        node_list = []
-        self._update_resources()
-        for node in self.dict_mors.keys():
-            nodename = self._create_nodename(node,
-                                          self.dict_mors.get(node)['name'])
-            node_list.append(nodename)
-        LOG.debug("The available nodes are: %s", node_list)
-        return node_list
+
+        return [self._nodename]
+        # self.dict_mors = vm_util.get_all_cluster_refs_by_name(
+        #                         self._session,
+        #                         CONF.vmware.cluster_name)
+        # node_list = []
+        # self._update_resources()
+        # for node in self.dict_mors.keys():
+        #     nodename = self._create_nodename(node,
+        #                                   self.dict_mors.get(node)['name'])
+        #     node_list.append(nodename)
+        # LOG.debug("The available nodes are: %s", node_list)
+        # return node_list
 
     def get_host_stats(self, refresh=True):
         """Return currently known host stats."""

@@ -1232,7 +1232,7 @@ def get_cluster_ref_by_name(session, cluster_name):
     for cluster in all_clusters:
         if (hasattr(cluster, 'propSet') and
                     cluster.propSet[0].val == cluster_name):
-            return cluster
+            return cluster.obj
     #
     # if not cls:
     #     return
