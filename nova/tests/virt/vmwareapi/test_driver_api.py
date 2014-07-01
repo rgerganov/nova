@@ -1971,21 +1971,20 @@ class VMwareAPIVCDriverTestCase(VMwareAPIVMTestCase):
     def setUp(self):
         super(VMwareAPIVCDriverTestCase, self).setUp()
 
-        cluster_name = 'test_cluster'
-        cluster_name2 = 'test_cluster2'
-        self.flags(cluster_name=[cluster_name, cluster_name2],
+        self.flags(cluster_name='test_cluster',
                    api_retry_count=1,
                    task_poll_interval=10, datastore_regex='.*', group='vmware')
         self.flags(vnc_enabled=False,
                    image_cache_subdirectory_name='vmware_base')
         vmwareapi_fake.reset(vc=True)
         self.conn = driver.VMwareVCDriver(None, False)
-        self.node_name = self.conn._resources.keys()[0]
-        self.node_name2 = self.conn._resources.keys()[1]
-        if cluster_name2 in self.node_name2:
-            self.ds = 'ds1'
-        else:
-            self.ds = 'ds2'
+        self.ds = 'ds1'
+        # self.node_name = self.conn._resources.keys()[0]
+        # self.node_name2 = self.conn._resources.keys()[1]
+        # if cluster_name2 in self.node_name2:
+        #     self.ds = 'ds1'
+        # else:
+        #     self.ds = 'ds2'
         self.vnc_host = 'ha-host'
 
     def tearDown(self):
