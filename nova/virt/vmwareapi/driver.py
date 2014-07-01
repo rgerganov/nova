@@ -391,35 +391,37 @@ class VMwareVCDriver(VMwareESXDriver):
         super(VMwareVCDriver, self).__init__(virtapi)
 
         # Get the list of clusters to be used
-        self._cluster_names = CONF.vmware.cluster_name
-        self.dict_mors = vm_util.get_all_cluster_refs_by_name(self._session,
-                                          self._cluster_names)
-        if not self.dict_mors:
-            raise exception.NotFound(_("All clusters specified %s were not"
-                                       " found in the vCenter")
-                                     % self._cluster_names)
-
-        # Check if there are any clusters that were specified in the nova.conf
-        # but are not in the vCenter, for missing clusters log a warning.
-        clusters_found = [v.get('name') for k, v in self.dict_mors.iteritems()]
-        missing_clusters = set(self._cluster_names) - set(clusters_found)
-        if missing_clusters:
-            LOG.warn(_("The following clusters could not be found in the"
-                " vCenter %s") % list(missing_clusters))
-
-        # The _resources is used to maintain the vmops, volumeops and vcstate
-        # objects per cluster
-        self._resources = {}
-        self._resource_keys = set()
-        self._virtapi = virtapi
-        self._update_resources()
-
-        # The following initialization is necessary since the base class does
-        # not use VC state.
-        first_cluster = self._resources.keys()[0]
-        self._vmops = self._resources.get(first_cluster).get('vmops')
-        self._volumeops = self._resources.get(first_cluster).get('volumeops')
-        self._vc_state = self._resources.get(first_cluster).get('vcstate')
+        self._cluster_name = CONF.vmware.cluster_name
+        self._cluster_ref = vm_util.get_cluster_ref_by_name(self._session,
+                                                            self._cluster_name)
+        # self.dict_mors = vm_util.get_all_cluster_refs_by_name(self._session,
+        #                                   self._cluster_names)
+        # if not self.dict_mors:
+        #     raise exception.NotFound(_("All clusters specified %s were not"
+        #                                " found in the vCenter")
+        #                              % self._cluster_names)
+        #
+        # # Check if there are any clusters that were specified in the nova.conf
+        # # but are not in the vCenter, for missing clusters log a warning.
+        # clusters_found = [v.get('name') for k, v in self.dict_mors.iteritems()]
+        # missing_clusters = set(self._cluster_names) - set(clusters_found)
+        # if missing_clusters:
+        #     LOG.warn(_("The following clusters could not be found in the"
+        #         " vCenter %s") % list(missing_clusters))
+        #
+        # # The _resources is used to maintain the vmops, volumeops and vcstate
+        # # objects per cluster
+        # self._resources = {}
+        # self._resource_keys = set()
+        # self._virtapi = virtapi
+        # self._update_resources()
+        #
+        # # The following initialization is necessary since the base class does
+        # # not use VC state.
+        # first_cluster = self._resources.keys()[0]
+        # self._vmops = self._resources.get(first_cluster).get('vmops')
+        # self._volumeops = self._resources.get(first_cluster).get('volumeops')
+        # self._vc_state = self._resources.get(first_cluster).get('vcstate')
 
     def list_instances(self):
         """List VM instances on the compute node."""
