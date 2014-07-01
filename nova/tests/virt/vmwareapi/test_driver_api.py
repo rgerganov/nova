@@ -316,7 +316,7 @@ class VMwareAPIVMTestCase(test.NoDBTestCase):
                    my_ip='')
         self.user_id = 'fake'
         self.project_id = 'fake'
-        self.node_name = 'test_url'
+        self.node_name = 'domain-1(test_cluster)'
         self.ds = 'ds1'
         self.context = context.RequestContext(self.user_id, self.project_id)
         stubs.set_stubs(self.stubs)
