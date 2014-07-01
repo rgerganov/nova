@@ -559,24 +559,25 @@ class VMwareVMUtilTestCase(test.NoDBTestCase):
                           vm_util.get_vnc_port,
                           fake_session(fake_vms))
 
-    def test_get_all_cluster_refs_by_name_none(self):
+    def test_get_cluster_ref_by_name_none(self):
         fake_objects = fake.FakeRetrieveResult()
-        refs = vm_util.get_all_cluster_refs_by_name(fake_session(fake_objects),
-                                                    ['fake_cluster'])
+        refs = vm_util.get_cluster_ref_by_name(fake_session(fake_objects),
+                                               ['fake_cluster'])
         self.assertTrue(not refs)
 
-    def test_get_all_cluster_refs_by_name_exists(self):
+    def test_get_cluster_ref_by_name_exists(self):
         fake_objects = fake.FakeRetrieveResult()
-        fake_objects.add_object(fake.ClusterComputeResource(name='cluster'))
-        refs = vm_util.get_all_cluster_refs_by_name(fake_session(fake_objects),
-                                                    ['cluster'])
-        self.assertTrue(len(refs) == 1)
+        cluster = fake.ClusterComputeResource(name='cluster')
+        fake_objects.add_object(cluster)
+        ref = vm_util.get_cluster_ref_by_name(fake_session(fake_objects),
+                                              'cluster')
+        self.assertIs(cluster.obj, ref)
 
-    def test_get_all_cluster_refs_by_name_missing(self):
+    def test_get_cluster_ref_by_name_missing(self):
         fake_objects = fake.FakeRetrieveResult()
         fake_objects.add_object(partialObject(path='cluster'))
-        refs = vm_util.get_all_cluster_refs_by_name(fake_session(fake_objects),
-                                                    ['cluster'])
+        refs = vm_util.get_cluster_ref_by_name(fake_session(fake_objects),
+                                               'cluster')
         self.assertTrue(not refs)
 
     def test_propset_dict_simple(self):
